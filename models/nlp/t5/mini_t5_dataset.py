@@ -34,7 +34,6 @@ class T5DataCollator:
 if __name__ == "__main__":
     t5_dataset = T5Dataset(tfrecord_path="./c4-train.tfrecord-00000-of-01024")
     t5_data_collator = T5DataCollator()
-    # t5_data_collator([t5_dataset[0], t5_dataset[1]])
     train_sampler = RandomSampler(t5_dataset)
     t5_dataloader = DataLoader(
         t5_dataset,
