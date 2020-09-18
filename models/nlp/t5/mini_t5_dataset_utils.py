@@ -71,6 +71,7 @@ def random_spans_noise_mask(length, noise_density, mean_noise_span_length=3.0):
     is_noise = np.equal(span_num % 2, 1)
     return is_noise[:orig_length]
 
+
 def noise_span_to_unique_sentinel(tokens, noise_mask, vocabulary=None):
     """Replace each run of consecutive noise tokens with a different sentinel.
     The idea here is to be able to align the dropped spans in the inputs
@@ -106,8 +107,10 @@ def noise_span_to_unique_sentinel(tokens, noise_mask, vocabulary=None):
     sentineled_tokens = tokens[np.logical_not(subsequent_noise_tokens)]
     return sentineled_tokens
 
+
 def nonnoise_span_to_unique_sentinel(tokens, noise_mask, vocabulary=None):
     return noise_span_to_unique_sentinel(tokens, np.logical_not(noise_mask), vocabulary)
+
 
 def build_sample(tokens, vocabulary):
     """
@@ -122,6 +125,7 @@ def build_sample(tokens, vocabulary):
     inputs = noise_span_to_unique_sentinel(tokens, noise_mask, vocabulary)
     targets = nonnoise_span_to_unique_sentinel(tokens, noise_mask, vocabulary)
     return {'inputs': inputs, 'targets': targets}
+
 
 if __name__ == "__main__":
     np.random.seed(123)
