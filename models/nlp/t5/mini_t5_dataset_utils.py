@@ -71,7 +71,61 @@ def random_spans_noise_mask(length, noise_density, mean_noise_span_length=3.0):
     is_noise = np.equal(span_num % 2, 1)
     return is_noise[:orig_length]
 
+def noise_span_to_unique_sentinel(tokens, noise_mask, vocabulary=None):
+    """Replace each run of consecutive noise tokens with a different sentinel.
+    The idea here is to be able to align the dropped spans in the inputs
+    with the markers in the targets.
+    We want to generate training examples like
+    "We hold X to be Y that" -> "X these truths Y self evident Z"
+    Sentinels assigned in decreasing order within the sequence starting at
+    vocabulary.size - 1.  That is, we appropriate the last tokens in the
+    vocabulary for additional use as sentinels.
+    TODO(noam): we may want to try enlarging the vocabulary and leaving room
+    for the sentinels instead.  However, this requires enlarging the embedding
+    tables in the model, so that is a bigger change.
+    Args:
+        tokens: a 1d integer numpy array
+        noise_mask: a boolean numpy array with the same shape as tokens
+        vocabulary: a vocabulary.Vocabulary
+    Returns:
+        a numpy array with the same shape and dtype as tokens
+    """
+    # TODO: figure out proper vocab size
+    # vocab_size = vocabulary.vocab_size
+    vocab_size = 300
+    prev_token_is_noise = np.pad(noise_mask[:-1], [[1, 0]])
+    # first token in noise spans
+    first_noise_tokens = np.logical_and(noise_mask, np.logical_not(prev_token_is_noise))
+    # subsequent tokens in noise spans
+    subsequent_noise_tokens = np.logical_and(noise_mask, prev_token_is_noise)
+    # TODO: replace sentinel with proper id
+    # using sentinel from the last of vocabulary
+    sentinel = vocab_size - np.cumsum(first_noise_tokens.astype(int))
+    tokens = np.where(first_noise_tokens, sentinel, tokens)
+    # boolean mask
+    sentineled_tokens = tokens[np.logical_not(subsequent_noise_tokens)]
+    return sentineled_tokens
+
+def nonnoise_span_to_unique_sentinel(tokens, noise_mask, vocabulary=None):
+    return noise_span_to_unique_sentinel(tokens, np.logical_not(noise_mask), vocabulary)
+
+def build_sample(tokens, vocabulary):
+    """
+    Args:
+        tokens: a 1d integer numpy array
+        noise_mask: a boolean numpy array with the same shape as tokens
+        vocabulary: a vocabulary.Vocabulary
+    Returns:
+        a numpy array with the same shape and dtype as tokens
+    """
+    noise_mask = random_spans_noise_mask(len(tokens), noise_density)
+    inputs = noise_span_to_unique_sentinel(tokens, noise_mask, vocabulary)
+    targets = nonnoise_span_to_unique_sentinel(tokens, noise_mask, vocabulary)
+    return {'inputs': inputs, 'targets': targets}
 
 if __name__ == "__main__":
     np.random.seed(123)
-    spans_mask = random_spans_noise_mask(100, 0.15)
+    spans_mask = random_spans_noise_mask(50, 0.15)
+    noise_span_to_unique_sentinel(np.array([1] * 50), spans_mask)
+    nonnoise_span_to_unique_sentinel(np.array([1] * 50), spans_mask)
+    print(build_sample(np.array([1] * 50), 0.15))
