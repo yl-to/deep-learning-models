@@ -116,10 +116,9 @@ def build_sample(tokens, vocabulary):
     """
     Args:
         tokens: a 1d integer numpy array
-        noise_mask: a boolean numpy array with the same shape as tokens
         vocabulary: a vocabulary.Vocabulary
     Returns:
-        a numpy array with the same shape and dtype as tokens
+        a dictionary with inputs and target, which formed a sample
     """
     noise_mask = random_spans_noise_mask(len(tokens), noise_density)
     inputs = noise_span_to_unique_sentinel(tokens, noise_mask, vocabulary)
